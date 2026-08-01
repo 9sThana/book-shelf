@@ -73,6 +73,24 @@ function BookShelfContent() {
     }
   };
 
+  // 1. ฟังก์ชันสกัด Sheet ID จาก URL หรือ ID
+  const handleSheetInput = (input) => {
+    if (!input) return "";
+    const match = input.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    if (match && match[1]) {
+      return match[1];
+    }
+    return input.trim();
+  };
+
+  // 2. ฟังก์ชันเมื่อกดปุ่มยืนยัน
+  const handleConfirmSheetId = (id) => {
+    if (!id) return;
+    // บันทึกลง localStorage หรือเรียกดึงข้อมูลใหม่ตามฟังก์ชันของคุณ
+    localStorage.setItem("book_tracker_sheet_id", id);
+    fetchBooks(id); // หรือเรียกฟังก์ชันดึงข้อมูลเดิมของคุณ
+  };
+
   const fetchBooks = async (targetId) => {
     setLoading(true);
     setError("");
@@ -466,26 +484,68 @@ function BookShelfContent() {
 
           <div className="space-y-2">
             <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
-              Google Sheet ID
+              Google Sheet ID หรือ URL
             </label>
-            <input
-              type="text"
-              value={sheetId}
-              onChange={(e) => setSheetId(e.target.value)}
-              placeholder="วาง Sheet ID ของคุณ..."
-              className="w-full p-3 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
-            />
-            <button
-              onClick={() => {
-                fetchBooks(sheetId);
-                setIsSidebarOpen(false);
-              }}
-              disabled={loading}
-              className="w-full py-2.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-medium rounded-xl border border-slate-600/50 active:scale-95 transition"
-            >
-              สลับ Sheet / โหลดใหม่
-            </button>
-            {error && <p className="text-rose-400 text-xs mt-1">{error}</p>}
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  value={sheetId}
+                  onChange={(e) => {
+                    const parsedId = handleSheetInput(e.target.value);
+                    setSheetId(parsedId);
+                  }}
+                  placeholder="วาง Sheet ID หรือ Sheet URL ของคุณ..."
+                  className="w-full p-3 pr-10 bg-slate-900 border border-slate-700 rounded-xl text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
+                />
+                {/* ปุ่ม Clear (✕) จะปรากฏเมื่อมีข้อมูลใน input */}
+                {sheetId && (
+                  <button
+                    type="button"
+                    onClick={() => setSheetId("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition p-1"
+                    title="ล้างข้อมูล"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                )}
+              </div>
+
+              {/* ปุ่มยืนยัน */}
+              <button
+                type="button"
+                onClick={() => handleConfirmSheetId(sheetId)} // เรียกใช้ฟังก์ชันดึงข้อมูลหรือบันทึกค่า
+                disabled={!sheetId || loading}
+                className="px-4 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed text-white text-xs font-semibold rounded-xl transition active:scale-95 flex items-center justify-center gap-1.5 shrink-0 shadow-sm"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+                <span>ยืนยัน</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -828,24 +888,24 @@ function BookShelfContent() {
             return (
               <div
                 key={idx}
-                className="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 space-y-3 shadow-sm"
+                className="bg-slate-800/80 border border-slate-700/60 rounded-2xl p-4 space-y-3 shadow-sm w-full overflow-hidden"
               >
                 {/* Header การ์ด: ลำดับที่ + Tag Special (ถ้ามี) + ปุ่มคัดลอก/แก้ไข */}
-                <div className="flex items-center justify-between border-b border-slate-700/50 pb-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20">
+                <div className="flex items-center justify-between gap-2 border-b border-slate-700/50 pb-2.5">
+                  <div className="flex items-center gap-1.5 min-w-0 shrink-0">
+                    <span className="text-xs font-bold text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded-md border border-indigo-500/20 shrink-0">
                       #{globalIndex}
                     </span>
 
                     {/* ✨ Tag Special บนมือถือ */}
                     {isSpecial && (
-                      <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md text-[10px] font-bold tracking-wider">
+                      <span className="px-1.5 py-0.5 bg-amber-500/10 text-amber-400 border border-amber-500/20 rounded-md text-[10px] font-bold tracking-wider shrink-0">
                         SPECIAL
                       </span>
                     )}
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <button
                       onClick={() => openDuplicateModal(book)}
                       className="text-[11px] text-slate-300 hover:text-white font-medium px-2.5 py-1 bg-slate-700 hover:bg-slate-600 rounded-lg border border-slate-600 active:scale-95 transition"
@@ -861,42 +921,48 @@ function BookShelfContent() {
                   </div>
                 </div>
 
-                {/* รายละเอียดชื่อหนังสือ */}
-                <div className="space-y-0.5 min-w-0">
-                  <p className="text-[11px] font-medium text-slate-400 truncate">
+                {/* รายละเอียดชื่อหนังสือ: ใส่ w-full และ overflow-hidden ให้ truncate ตัดคำได้จริง */}
+                <div className="space-y-0.5 min-w-0 w-full overflow-hidden">
+                  <p
+                    className="text-[11px] font-medium text-slate-400 truncate w-full"
+                    title={book.book_title || undefined}
+                  >
                     {book.book_title || "-"}
                   </p>
-                  <p className="font-bold text-sm text-white truncate">
+                  <p
+                    className="font-bold text-sm text-white truncate w-full"
+                    title={book.th_book_name || undefined}
+                  >
                     {book.th_book_name || "-"}
                   </p>
                 </div>
 
                 {/* ข้อมูลอื่นๆ */}
                 <div className="grid grid-cols-3 gap-2 text-xs pt-1 border-t border-slate-700/30">
-                  <div className="col-span-1">
+                  <div className="col-span-1 min-w-0">
                     <span className="text-slate-400 text-[10px] block">
                       ราคา:
                     </span>
-                    <span className="text-indigo-300 font-semibold block">
+                    <span className="text-indigo-300 font-semibold block truncate">
                       {book.price ? `${book.price} ฿` : "-"}
                     </span>
                   </div>
-                  <div className="col-span-1">
+                  <div className="col-span-1 min-w-0">
                     <span className="text-slate-400 text-[10px] block">
                       สำนักพิมพ์:
                     </span>
                     <span
-                      className="text-slate-200 truncate block"
+                      className="text-slate-200 truncate block w-full"
                       title={book.publisher}
                     >
                       {book.publisher || "-"}
                     </span>
                   </div>
-                  <div className="col-span-1 text-right">
+                  <div className="col-span-1 min-w-0 text-right">
                     <span className="text-slate-400 text-[10px] block">
                       วันที่เพิ่ม:
                     </span>
-                    <span className="text-slate-300 font-mono text-[11px] block">
+                    <span className="text-slate-300 font-mono text-[11px] block truncate">
                       {formatDateDisplay(book.creation_date)}
                     </span>
                   </div>
