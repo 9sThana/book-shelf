@@ -1,0 +1,33 @@
+@import "tailwindcss";
+
+/* The app is dark-only, so the page background never flashes white. */
+:root {
+  --background: #0b0f14;
+  --foreground: #e2e8f0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  /* Fonts are loaded in layout.js with next/font (Thai + Latin subsets) */
+  --font-sans:
+    var(--font-anuphan), "Noto Sans Thai", ui-sans-serif, system-ui, sans-serif;
+  --font-display:
+    var(--font-prompt), var(--font-anuphan), ui-sans-serif, system-ui,
+    sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  /* Thai has stacked vowels and tone marks: give lines extra height so nothing is clipped */
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
