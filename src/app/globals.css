@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* The app is dark-only, so the page background never flashes white. */
+/* Dark is the default palette; the dashboard can switch to its light palette. */
 :root {
   --background: #0b0f14;
   --foreground: #e2e8f0;
@@ -31,3 +31,191 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
+
+.bs-root { color-scheme: dark; --ease: cubic-bezier(.16,1,.3,1); font-family: var(--font-anuphan), 'Noto Sans Thai', ui-sans-serif, system-ui, sans-serif; }
+.bs-display { font-family: var(--font-prompt), var(--font-anuphan), ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.01em; }
+.bs-root :focus-visible { outline: 2px solid #2dd4bf; outline-offset: 2px; }
+
+/* Ambient background: two soft glows that drift slowly behind everything */
+.bs-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 12% 18%, rgba(45, 212, 191, .075), transparent 42%),
+    radial-gradient(ellipse at 88% 72%, rgba(139, 92, 246, .07), transparent 40%),
+    radial-gradient(ellipse at 54% 110%, rgba(230, 166, 109, .055), transparent 38%);
+}
+.bs-bg::before, .bs-bg::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(2px);
+  animation: bs-drift 25s cubic-bezier(.45, 0, .55, 1) infinite alternate;
+  will-change: transform;
+}
+.bs-bg::before {
+  width: 44rem;
+  height: 44rem;
+  left: -12rem;
+  top: -16rem;
+  background: radial-gradient(circle, rgba(45, 212, 191, .2), rgba(45, 212, 191, .06) 35%, transparent 68%);
+}
+.bs-bg::after {
+  width: 40rem;
+  height: 40rem;
+  right: -12rem;
+  top: 18%;
+  background: radial-gradient(circle, rgba(139, 92, 246, .17), rgba(230, 166, 109, .055) 38%, transparent 68%);
+  animation-delay: -12s;
+}
+@keyframes bs-drift {
+  0% { transform: translate3d(-1rem, 0, 0) scale(.94); }
+  100% { transform: translate3d(4rem, 3rem, 0) scale(1.12); }
+}
+
+/* Entrances: --i sets the stagger order */
+@keyframes bs-rise { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
+.bs-rise { animation: bs-rise .72s var(--ease) both; animation-delay: calc(var(--i, 0) * 45ms); will-change: transform, opacity; }
+@keyframes bs-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+.bs-grow { transform-origin: bottom; animation: bs-grow .9s var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms); }
+@keyframes bs-fade { from { opacity: 0; } to { opacity: 1; } }
+.bs-fade { animation: bs-fade .25s ease-out both; }
+@keyframes bs-sheet { from { transform: translateY(32px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
+.bs-sheet { animation: bs-sheet .48s var(--ease) both; }
+@keyframes bs-drawer { from { transform: translateX(100%); } to { transform: none; } }
+.bs-drawer { animation: bs-drawer .48s var(--ease) both; }
+@keyframes bs-shimmer { to { background-position: -200% 0; } }
+.bs-skel { background: linear-gradient(90deg, rgba(30,41,59,.5) 25%, rgba(51,65,85,.55) 50%, rgba(30,41,59,.5) 75%); background-size: 200% 100%; animation: bs-shimmer 1.4s linear infinite; }
+
+/* Cards: lift + glow in the spine colour on hover; special editions get a slow sheen */
+.bs-card { position: relative; transition: transform .48s var(--ease), box-shadow .48s var(--ease), border-color .35s ease; }
+.bs-card:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -22px var(--spine); }
+.bs-spine { transition: width .48s var(--ease); }
+.bs-card:hover .bs-spine { width: .8rem; }
+@keyframes bs-sheen { to { transform: translateX(130%); } }
+.bs-special::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(110deg, transparent 30%, rgba(251,191,36,.13) 50%, transparent 70%); transform: translateX(-130%); animation: bs-sheen 4s ease-in-out infinite; }
+
+/* Buttons */
+.bs-btn { transition: transform .28s var(--ease), box-shadow .35s ease, background .35s ease; }
+.bs-btn:hover { box-shadow: 0 10px 26px -10px rgba(45,212,191,.7); }
+@keyframes bs-ring { 0% { box-shadow: 0 0 0 0 rgba(45,212,191,.55); } 100% { box-shadow: 0 0 0 20px rgba(45,212,191,0); } }
+.bs-fab { animation: bs-ring 2.4s ease-out 1.2s 2; }
+.bs-glass { background: rgba(18,24,33,.6); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
+.bs-gradient-text { padding-block: .12em; background: linear-gradient(120deg, #e2e8f0 10%, #5eead4 55%, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+@media (prefers-reduced-motion: reduce) {
+  .bs-root *, .bs-root *::before, .bs-root *::after, .bs-bg::before, .bs-bg::after { animation: none !important; transition: none !important; }
+}
+
+/* Brand and dashboard refinements live here so the page stays focused on app behavior. */
+.bs-root :focus-visible { outline-color: #f0b875; }
+.bs-library > section:first-child h1 {
+  background-image: linear-gradient(120deg, #fff0d9 10%, #f0b875 64%, #e9a4a8);
+}
+.bs-library > section:first-child dl > div {
+  background: rgba(14, 18, 23, .62);
+  border-color: rgba(240, 184, 117, .12);
+}
+.bs-root .bs-card {
+  background: linear-gradient(145deg, rgba(37, 39, 43, .96), rgba(20, 24, 29, .98));
+  border-color: rgba(255, 255, 255, .09);
+}
+.bs-root .bs-card:hover {
+  border-color: color-mix(in srgb, var(--spine), transparent 45%);
+}
+.bs-preference-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .4rem;
+  min-height: 2.35rem;
+  padding: .4rem .7rem;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, .045);
+  color: #cbd5e1;
+  font-size: .75rem;
+  font-weight: 600;
+  transition: color .35s ease, background .35s ease, border-color .35s ease, transform .35s var(--ease);
+}
+.bs-preference-control:hover { transform: translateY(-1px); background: rgba(255, 255, 255, .1); }
+.bs-root > header, .bs-root aside, .bs-root [role="dialog"], .bs-root .bs-library > section:first-child {
+  transition: color .4s ease, background-color .4s ease, border-color .4s ease, box-shadow .4s ease;
+}
+
+/* Light palette overrides the utility colours while preserving the same layout. */
+.bs-root[data-theme="light"] {
+  color-scheme: light;
+  background: #f3efe7 !important;
+  color: #25322e;
+}
+.bs-root[data-theme="light"] > header { background: rgba(247, 244, 237, .88); border-color: #ded8cb; }
+.bs-root[data-theme="light"] .bs-library > section:first-child {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.bs-root[data-theme="light"] .bs-library > section:first-child .bs-title-light {
+  background: none !important;
+  background-image: none !important;
+  background-clip: border-box;
+  -webkit-background-clip: border-box;
+  color: #35473f !important;
+  -webkit-text-fill-color: #35473f !important;
+}
+.bs-root[data-theme="light"] .bs-library > section:first-child dl > div {
+  background: rgba(255, 255, 255, .68);
+  border-color: #e9e5dc;
+  box-shadow: 0 5px 18px -16px rgba(62, 54, 39, .28);
+}
+.bs-root[data-theme="light"] .bs-card { background: linear-gradient(145deg, #fffefa, #f4f0e8); border-color: #e6dfd2; box-shadow: 0 8px 28px -24px rgba(51, 48, 39, .5); }
+.bs-root[data-theme="light"] .text-slate-100,
+.bs-root[data-theme="light"] .text-slate-200,
+.bs-root[data-theme="light"] .text-slate-300 { color: #273530 !important; }
+.bs-root[data-theme="light"] .text-slate-400 { color: #68746d !important; }
+.bs-root[data-theme="light"] .text-slate-500 { color: #828b83 !important; }
+.bs-root[data-theme="light"] .text-slate-600,
+.bs-root[data-theme="light"] .text-slate-700 { color: #59675f !important; }
+.bs-root[data-theme="light"] .text-teal-300,
+.bs-root[data-theme="light"] .text-teal-400 { color: #287565 !important; }
+.bs-root[data-theme="light"] .text-amber-300 { color: #91601e !important; }
+.bs-root[data-theme="light"] .text-rose-300 { color: #a83f48 !important; }
+.bs-root[data-theme="light"] .bg-\[\#121821\],
+.bs-root[data-theme="light"] .bg-\[\#0b0f14\] { background-color: #f7f4ed !important; }
+.bs-root[data-theme="light"] .bg-slate-900\/60,
+.bs-root[data-theme="light"] .bg-slate-950\/60 { background-color: #fffefa !important; }
+.bs-root[data-theme="light"] .bg-slate-700\/60,
+.bs-root[data-theme="light"] .bg-slate-800\/60,
+.bs-root[data-theme="light"] .bg-slate-700,
+.bs-root[data-theme="light"] .bg-slate-800 { background-color: #e9e4d9 !important; }
+.bs-root[data-theme="light"] .border-slate-800,
+.bs-root[data-theme="light"] .border-white\/5,
+.bs-root[data-theme="light"] .border-white\/10 { border-color: #e1dbcf !important; }
+.bs-root[data-theme="light"] .border-rose-500\/30 { border-color: #e8b8b8 !important; }
+.bs-root[data-theme="light"] .bg-rose-500\/10 { background-color: #fff0ed !important; }
+.bs-root[data-theme="light"] .bg-amber-500\/15 { background-color: #f8eedb !important; }
+.bs-root[data-theme="light"] input { color: #26342f !important; background-color: #fffefa !important; border-color: #ddd6c8 !important; }
+.bs-root[data-theme="light"] input:disabled { background-color: #eee9df !important; color: #68746d !important; }
+.bs-root[data-theme="light"] input::placeholder { color: #92998f !important; }
+.bs-root[data-theme="light"] .bs-preference-control { color: #495750; border-color: #d8d2c6; background: rgba(255,255,255,.72); }
+.bs-root[data-theme="light"] .bs-preference-control:hover { background: #fff; }
+.bs-root[data-theme="light"] .bg-white\/5 { background-color: rgba(47, 65, 57, .06); }
+.bs-root[data-theme="light"] .bg-white\/10 { background-color: rgba(47, 65, 57, .1); }
+.bs-root[data-theme="light"] .hover\:text-white:hover { color: #25322e !important; }
+.bs-root[data-theme="light"] .hover\:bg-slate-800:hover { background-color: #e9e4d9 !important; }
+.bs-root[data-theme="light"] .disabled\:bg-slate-800:disabled { background-color: #e8e4dc !important; }
+.bs-root[data-theme="light"] .bs-skel {
+  background: linear-gradient(90deg, #e9e4d9 25%, #f6f3ec 50%, #e9e4d9 75%);
+  background-size: 200% 100%;
+}
+.bs-root[data-theme="light"] .bs-bg {
+  background:
+    radial-gradient(ellipse at 12% 18%, rgba(205, 153, 91, .09), transparent 42%),
+    radial-gradient(ellipse at 88% 72%, rgba(92, 139, 119, .075), transparent 40%),
+    radial-gradient(ellipse at 54% 110%, rgba(224, 173, 153, .07), transparent 38%);
+}
+.bs-root[data-theme="light"] .bs-bg::before { background: radial-gradient(circle, rgba(205,153,91,.18), rgba(205,153,91,.05) 35%, transparent 68%); }
+.bs-root[data-theme="light"] .bs-bg::after { background: radial-gradient(circle, rgba(92,139,119,.14), rgba(92,139,119,.045) 38%, transparent 68%); }

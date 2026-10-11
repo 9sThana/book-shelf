@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * BOOK SHELF: how this page works
+ * SHELFWISE: how this page works
  * -------------------------------------------------------------------------
  * 1. Login: NextAuth signs the user in with Google. The login asks for Drive
  *    (metadata only) and Sheets permission; see lib/auth.js.
@@ -18,9 +18,10 @@
  * -------------------------------------------------------------------------
  */
 
-import { useState, useEffect, useMemo, useRef, Suspense } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback, Suspense } from "react";
 import { useSession, signIn, signOut } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import moment from "moment";
 
 const INITIAL_FORM = {
@@ -35,6 +36,130 @@ const INITIAL_FORM = {
 };
 
 const ITEMS_PER_PAGE = 12;
+const TEXT = {
+  en: {
+    loading: "Loading…",
+    library: "Your library",
+    connecting: "Connecting to Google Sheets",
+    books: "Books",
+    specialEditions: "Special editions",
+    totalValue: "Total value",
+    search: "Search by title, publisher or ID",
+    clearSearch: "Clear search",
+    signInAgain: "Sign in again",
+    tryAgain: "Try again",
+    noBooks: "No books in this sheet yet",
+    firstBookHint: "Add your first book to get started.",
+    addFirstBook: "Add your first book",
+    noResults: "No results for",
+    searchHint: "Try a different word or check the spelling.",
+    clear: "Clear search",
+    special: "Special",
+    noPublisher: "No publisher",
+    edit: "Edit",
+    duplicate: "Duplicate",
+    duplicateTitle: "Create a new entry from this book",
+    showing: "Showing",
+    of: "of",
+    previous: "Previous",
+    next: "Next",
+    account: "Account & sheet",
+    addBook: "Add book",
+    settings: "Preferences & account",
+    close: "Close",
+    refresh: "Refresh",
+    bookCount: "books",
+    language: "Language",
+    theme: "Appearance",
+    light: "Light mode",
+    dark: "Dark mode",
+    thai: "ไทย",
+    english: "English",
+    googleSheet: "Google Sheet",
+    sheetHelp: 'We look for a file named "BookTracker_Data" (tab: Books) in your Google Drive automatically. Use this field only to switch to a different file.',
+    sheetPlaceholder: "Paste a Google Sheets URL or ID",
+    useSheet: "Use this sheet",
+    autoSheet: "Use automatic BookTracker_Data",
+    signOut: "Sign out",
+    addTitle: "Add a book",
+    editTitle: "Edit book",
+    bookId: "Book ID",
+    auto: "Auto",
+    price: "Price (THB)",
+    mainTitle: "Main title",
+    thaiTitle: "Thai title",
+    englishTitle: "English title",
+    publisher: "Publisher",
+    dateAdded: "Date added",
+    specialEdition: "Special edition",
+    cancel: "Cancel",
+    save: "Save",
+    saving: "Saving…",
+    appTagline: "Your personal library, beautifully in sync.",
+    signIn: "Continue with Google",
+  },
+  th: {
+    loading: "กำลังโหลด…",
+    library: "ห้องสมุดของคุณ",
+    connecting: "กำลังเชื่อมต่อ Google Sheets",
+    books: "หนังสือทั้งหมด",
+    specialEditions: "ฉบับพิเศษ",
+    totalValue: "มูลค่ารวม",
+    search: "ค้นหาจากชื่อหนังสือ สำนักพิมพ์ หรือรหัส",
+    clearSearch: "ล้างคำค้นหา",
+    signInAgain: "เข้าสู่ระบบอีกครั้ง",
+    tryAgain: "ลองอีกครั้ง",
+    noBooks: "ยังไม่มีหนังสือในชีตนี้",
+    firstBookHint: "เพิ่มหนังสือเล่มแรกเพื่อเริ่มต้น",
+    addFirstBook: "เพิ่มหนังสือเล่มแรก",
+    noResults: "ไม่พบผลลัพธ์สำหรับ",
+    searchHint: "ลองใช้คำอื่นหรือตรวจสอบการสะกด",
+    clear: "ล้างคำค้นหา",
+    special: "ฉบับพิเศษ",
+    noPublisher: "ไม่ระบุสำนักพิมพ์",
+    edit: "แก้ไข",
+    duplicate: "ทำสำเนา",
+    duplicateTitle: "สร้างรายการใหม่จากหนังสือเล่มนี้",
+    showing: "แสดง",
+    of: "จากทั้งหมด",
+    previous: "ก่อนหน้า",
+    next: "ถัดไป",
+    account: "บัญชีและชีต",
+    addBook: "เพิ่มหนังสือ",
+    settings: "การตั้งค่าและบัญชี",
+    close: "ปิด",
+    refresh: "รีเฟรช",
+    bookCount: "เล่ม",
+    language: "ภาษา",
+    theme: "ธีม",
+    light: "โหมดสว่าง",
+    dark: "โหมดมืด",
+    thai: "ไทย",
+    english: "English",
+    googleSheet: "Google Sheet",
+    sheetHelp: 'ระบบค้นหาไฟล์ "BookTracker_Data" (แท็บ Books) ใน Google Drive ให้อัตโนมัติ ใช้ช่องนี้เมื่อต้องการเปลี่ยนไฟล์เท่านั้น',
+    sheetPlaceholder: "วาง URL หรือ ID ของ Google Sheets",
+    useSheet: "ใช้ชีตนี้",
+    autoSheet: "กลับไปใช้ BookTracker_Data อัตโนมัติ",
+    signOut: "ออกจากระบบ",
+    addTitle: "เพิ่มหนังสือ",
+    editTitle: "แก้ไขหนังสือ",
+    bookId: "รหัสหนังสือ",
+    auto: "อัตโนมัติ",
+    price: "ราคา (บาท)",
+    mainTitle: "ชื่อหลัก",
+    thaiTitle: "ชื่อภาษาไทย",
+    englishTitle: "ชื่อภาษาอังกฤษ",
+    publisher: "สำนักพิมพ์",
+    dateAdded: "วันที่เพิ่ม",
+    specialEdition: "ฉบับพิเศษ",
+    cancel: "ยกเลิก",
+    save: "บันทึก",
+    saving: "กำลังบันทึก…",
+    appTagline: "ห้องสมุดส่วนตัวของคุณ ที่จัดการได้อย่างลงตัว",
+    signIn: "ดำเนินการต่อด้วย Google",
+  },
+};
 // Read ?page= from the URL; fall back to 1 for missing / invalid / negative values.
 const readPage = (sp) => Math.max(1, parseInt(sp.get("page") || "1", 10) || 1);
 const SPINES = [
@@ -82,54 +207,7 @@ const Icon = ({ name, className = "w-4 h-4", spin }) => (
   </svg>
 );
 
-const Fonts = () => (
-  <style>{`
-    .bs-root { color-scheme: dark; --ease: cubic-bezier(.22,1,.36,1); font-family: var(--font-anuphan), 'Noto Sans Thai', ui-sans-serif, system-ui, sans-serif; }
-    .bs-display { font-family: var(--font-prompt), var(--font-anuphan), ui-sans-serif, system-ui, sans-serif; letter-spacing: -0.01em; }
-    .bs-root :focus-visible { outline: 2px solid #2dd4bf; outline-offset: 2px; }
 
-    /* Ambient background: two soft glows that drift slowly behind everything */
-    .bs-bg { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
-    .bs-bg::before, .bs-bg::after { content: ""; position: absolute; border-radius: 50%; animation: bs-drift 22s ease-in-out infinite alternate; }
-    .bs-bg::before { width: 44rem; height: 44rem; left: -12rem; top: -16rem; background: radial-gradient(circle, rgba(45,212,191,.17), transparent 65%); }
-    .bs-bg::after { width: 40rem; height: 40rem; right: -12rem; top: 18%; background: radial-gradient(circle, rgba(139,92,246,.15), transparent 65%); animation-delay: -9s; }
-    @keyframes bs-drift { to { transform: translate(4rem, 3rem) scale(1.12); } }
-
-    /* Entrances: --i sets the stagger order */
-    @keyframes bs-rise { from { opacity: 0; transform: translateY(16px) scale(.98); } to { opacity: 1; transform: none; } }
-    .bs-rise { animation: bs-rise .6s var(--ease) both; animation-delay: calc(var(--i, 0) * 60ms); }
-    @keyframes bs-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-    .bs-grow { transform-origin: bottom; animation: bs-grow .9s var(--ease) both; animation-delay: calc(var(--i, 0) * 90ms); }
-    @keyframes bs-fade { from { opacity: 0; } to { opacity: 1; } }
-    .bs-fade { animation: bs-fade .25s ease-out both; }
-    @keyframes bs-sheet { from { transform: translateY(32px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
-    .bs-sheet { animation: bs-sheet .38s var(--ease) both; }
-    @keyframes bs-drawer { from { transform: translateX(100%); } to { transform: none; } }
-    .bs-drawer { animation: bs-drawer .4s var(--ease) both; }
-    @keyframes bs-shimmer { to { background-position: -200% 0; } }
-    .bs-skel { background: linear-gradient(90deg, rgba(30,41,59,.5) 25%, rgba(51,65,85,.55) 50%, rgba(30,41,59,.5) 75%); background-size: 200% 100%; animation: bs-shimmer 1.4s linear infinite; }
-
-    /* Cards: lift + glow in the spine colour on hover; special editions get a slow sheen */
-    .bs-card { position: relative; transition: transform .4s var(--ease), box-shadow .4s var(--ease), border-color .3s; }
-    .bs-card:hover { transform: translateY(-4px); box-shadow: 0 22px 44px -22px var(--spine); }
-    .bs-spine { transition: width .4s var(--ease); }
-    .bs-card:hover .bs-spine { width: .8rem; }
-    @keyframes bs-sheen { to { transform: translateX(130%); } }
-    .bs-special::before { content: ""; position: absolute; inset: 0; z-index: 1; pointer-events: none; background: linear-gradient(110deg, transparent 30%, rgba(251,191,36,.13) 50%, transparent 70%); transform: translateX(-130%); animation: bs-sheen 4s ease-in-out infinite; }
-
-    /* Buttons */
-    .bs-btn { transition: transform .2s var(--ease), box-shadow .25s, background .25s; }
-    .bs-btn:hover { box-shadow: 0 10px 26px -10px rgba(45,212,191,.7); }
-    @keyframes bs-ring { 0% { box-shadow: 0 0 0 0 rgba(45,212,191,.55); } 100% { box-shadow: 0 0 0 20px rgba(45,212,191,0); } }
-    .bs-fab { animation: bs-ring 2.4s ease-out 1.2s 2; }
-    .bs-glass { background: rgba(18,24,33,.6); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); }
-    .bs-gradient-text { padding-block: .12em; background: linear-gradient(120deg, #e2e8f0 10%, #5eead4 55%, #a78bfa); -webkit-background-clip: text; background-clip: text; color: transparent; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .bs-root *, .bs-root *::before, .bs-root *::after, .bs-bg::before, .bs-bg::after { animation: none !important; transition: none !important; }
-    }
-  `}</style>
-);
 
 const field =
   "w-full px-3.5 py-2.5 bg-slate-950/60 border border-white/10 rounded-xl text-base sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-teal-400/70 focus:ring-4 focus:ring-teal-400/10 transition";
@@ -174,11 +252,71 @@ function Field({ label, hint, children }) {
   );
 }
 
+function Preferences({ language, onLanguageChange, theme, onToggleTheme, t }) {
+  return (
+    <div className="flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => onLanguageChange(language === "en" ? "th" : "en")}
+        aria-pressed={language === "th"}
+        aria-label={`${t("language")}: ${language === "en" ? t("thai") : t("english")}`}
+        className="bs-preference-control"
+      >
+        {language === "en" ? "ไทย" : "EN"}
+      </button>
+      <button
+        type="button"
+        onClick={onToggleTheme}
+        aria-pressed={theme === "light"}
+        aria-label={theme === "dark" ? t("light") : t("dark")}
+        className="bs-preference-control"
+      >
+        <span aria-hidden>{theme === "dark" ? "☼" : "☾"}</span>
+        <span className="hidden sm:inline">{theme === "dark" ? t("light") : t("dark")}</span>
+      </button>
+    </div>
+  );
+}
+
 function BookShelfContent() {
   // ---- Auth & routing ----
   const { data: session, status } = useSession();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [language, setLanguage] = useState("en");
+  const [theme, setTheme] = useState("dark");
+  const t = (key) => TEXT[language][key];
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setLanguage(
+        localStorage.getItem("shelfwise_language") === "th" ? "th" : "en",
+      );
+      setTheme(
+        localStorage.getItem("shelfwise_theme") === "light" ? "light" : "dark",
+      );
+    });
+    return () => cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
+  useEffect(() => {
+    document.documentElement.style.colorScheme = theme;
+  }, [theme]);
+
+  const changeLanguage = (nextLanguage) => {
+    setLanguage(nextLanguage);
+    localStorage.setItem("shelfwise_language", nextLanguage);
+  };
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    localStorage.setItem("shelfwise_theme", nextTheme);
+  };
 
   // ---- Data ----
   // sheetId: the spreadsheet currently in use (found by the server or typed by the user).
@@ -197,7 +335,7 @@ function BookShelfContent() {
   const [searchTerm, setSearchTerm] = useState("");
 
   // Pagination: the current page is mirrored in the URL so Back / refresh keep your place.
-  const [currentPage, setCurrentPage] = useState(readPage(searchParams));
+  const currentPage = readPage(searchParams);
 
   // Add / edit form state (formMode decides which action is sent to the API).
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -205,24 +343,8 @@ function BookShelfContent() {
   const [formData, setFormData] = useState(INITIAL_FORM);
   const [targetRowIndex, setTargetRowIndex] = useState(null);
 
-  // Runs once when the user becomes logged in (not on every session refresh): load the books.
-  useEffect(() => {
-    if (status === "authenticated") {
-      // A manual override (if any) was saved earlier; otherwise "" => auto-find BookTracker_Data.
-      const saved = localStorage.getItem("saved_sheet_id") || "";
-      setManualId(saved);
-      fetchBooks(saved);
-    }
-  }, [status]);
-
-  // Keep state in sync when the URL changes (browser Back / Forward).
-  useEffect(() => {
-    setCurrentPage(readPage(searchParams));
-  }, [searchParams]);
-
   // Change page and write it into the URL (?page=N) without scrolling to top.
   const handlePageChange = (newPage) => {
-    setCurrentPage(newPage);
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", newPage.toString());
     router.push(`?${params.toString()}`, { scroll: false });
@@ -241,7 +363,62 @@ function BookShelfContent() {
     return match && match[1] ? match[1] : input.trim();
   };
 
-  // Use a specific spreadsheet instead of the automatic one, and remember it.
+  // Load books from the API. targetId "" => the server finds BookTracker_Data itself.
+  const fetchBooks = useCallback(async (targetId = "", isRetry = false) => {
+    const loadBooks = async (requestedId, retry) => {
+      setLoading(true);
+      setError("");
+      setAuthError(false);
+      try {
+        const res = await fetch(
+          `/api/sheet-data?sheetId=${encodeURIComponent(requestedId || "")}`,
+        );
+        const result = await res.json().catch(() => ({}));
+
+        // 401 = not signed in / token expired / Google refused the token.
+        if (res.status === 401) {
+          setAuthError(true);
+          throw new Error(
+            result.error ||
+              "Your session has expired. Please sign in again to reconnect Google.",
+          );
+        }
+        // The remembered sheet is gone: forget it and fall back to auto-discovery (once).
+        if (res.status === 404 && requestedId && !retry) {
+          localStorage.removeItem("saved_sheet_id");
+          setManualId("");
+          return loadBooks("", true);
+        }
+        if (!res.ok) {
+          throw new Error(result.error || "Could not load your books.");
+        }
+
+        setBooks(result.data || []);
+        setSheetId(result.sheetId);
+        setSheetName(result.sheetName || "");
+      } catch (err) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    return loadBooks(targetId, isRetry);
+  }, []);
+
+  // Load the selected spreadsheet when the authenticated session becomes available.
+  useEffect(() => {
+    if (status !== "authenticated") return;
+
+    const frame = requestAnimationFrame(() => {
+      const saved = localStorage.getItem("saved_sheet_id") || "";
+      setManualId(saved);
+      fetchBooks(saved);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [status, fetchBooks]);
+
+  // Switch between a manually selected sheet and automatic Drive discovery.
   const handleConfirmSheetId = (id) => {
     if (!id) return;
     localStorage.setItem("saved_sheet_id", id);
@@ -249,50 +426,11 @@ function BookShelfContent() {
     setIsSettingsOpen(false);
   };
 
-  // Forget the override and go back to auto-finding "BookTracker_Data" in Drive.
   const handleUseAuto = () => {
     localStorage.removeItem("saved_sheet_id");
     setManualId("");
     fetchBooks("");
     setIsSettingsOpen(false);
-  };
-
-  // Load books from the API. targetId "" => the server finds BookTracker_Data itself.
-  const fetchBooks = async (targetId = "", isRetry = false) => {
-    setLoading(true);
-    setError("");
-    setAuthError(false);
-    try {
-      const res = await fetch(
-        `/api/sheet-data?sheetId=${encodeURIComponent(targetId || "")}`,
-      );
-      const result = await res.json().catch(() => ({}));
-
-      // 401 = not signed in / token expired / Google refused the token.
-      if (res.status === 401) {
-        setAuthError(true);
-        throw new Error(
-          result.error ||
-            "Your session has expired. Please sign in again to reconnect Google.",
-        );
-      }
-      // The remembered sheet is gone: forget it and fall back to auto-discovery (once).
-      if (res.status === 404 && targetId && !isRetry) {
-        localStorage.removeItem("saved_sheet_id");
-        setManualId("");
-        return fetchBooks("", true);
-      }
-      if (!res.ok)
-        throw new Error(result.error || "Could not load your books.");
-
-      setBooks(result.data || []);
-      setSheetId(result.sheetId);
-      setSheetName(result.sheetName || "");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
   };
 
   // Next ID = highest number found in book_id + 1, e.g. BK-0007 -> BK-0008.
@@ -448,59 +586,54 @@ function BookShelfContent() {
   // If the list shrinks (search / refresh) and the page is out of range, go to the last page.
   useEffect(() => {
     if (!loading && books.length > 0 && currentPage > totalPages) {
-      handlePageChange(totalPages);
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("page", totalPages.toString());
+      router.replace(`?${params.toString()}`, { scroll: false });
     }
-  }, [totalPages, loading, books.length]);
+  }, [books.length, currentPage, loading, router, searchParams, totalPages]);
 
   // ---- Render: loading -> logged out -> main app ----
   if (status === "loading") {
     return (
       <div className="bs-root min-h-[100dvh] bg-[#0b0f14] flex items-center justify-center text-slate-400 gap-3">
-        <Fonts />
         <Icon name="refresh" className="w-5 h-5 text-teal-400" spin />
-        Loading...
+        {t("loading")}
       </div>
     );
   }
 
   if (!session) {
     return (
-      <div className="bs-root min-h-[100dvh] bg-[#0b0f14] relative isolate flex items-center justify-center p-5">
-        <Fonts />
+      <div className="bs-root min-h-[100dvh] bg-[#0b0f14] relative isolate flex items-center justify-center p-5" data-theme={theme}>
         <div className="bs-bg" aria-hidden />
         <div className="w-full max-w-md">
-          <div className="flex gap-1 mb-8" aria-hidden>
-            {SPINES.slice(0, 6).map((c, i) => (
-              <div
-                key={c}
-                className="bs-grow flex-1 rounded-t-md"
-                style={{
-                  background: c,
-                  height: 48 + ((i * 17) % 40),
-                  "--i": i,
-                }}
-              />
-            ))}
+          <div className="flex justify-end mb-8">
+            <Preferences language={language} onLanguageChange={changeLanguage} theme={theme} onToggleTheme={toggleTheme} t={t} />
+          </div>
+          <div className="mb-8 flex items-center gap-3" aria-hidden>
+            <Image src="/morrow-mark.svg" alt="" width={56} height={56} className="h-14 w-14" />
+            <span className="bs-display text-sm font-semibold uppercase tracking-[.22em] text-teal-300">
+              Morrow
+            </span>
           </div>
           <h1
             style={{ "--i": 6 }}
             className="bs-rise bs-display text-4xl font-semibold text-slate-100 leading-snug"
           >
-            Book Shelf
+            Morrow
           </h1>
           <p
             style={{ "--i": 7 }}
             className="bs-rise mt-3 text-slate-400 leading-relaxed"
           >
-            Keep your book list in Google Sheets, then search, add and edit it
-            from here.
+            {t("appTagline")}
           </p>
           <button
             onClick={() => signIn("google")}
             style={{ "--i": 8 }}
             className="bs-btn bs-rise mt-8 w-full py-3.5 bg-gradient-to-br from-teal-500 to-teal-600 text-white font-medium rounded-xl active:scale-[0.99]"
           >
-            Sign in with Google
+            {t("signIn")}
           </button>
         </div>
       </div>
@@ -508,30 +641,22 @@ function BookShelfContent() {
   }
 
   return (
-    <div className="bs-root relative isolate min-h-[100dvh] bg-[#0b0f14] text-slate-100">
-      <Fonts />
+    <div className="bs-root relative isolate min-h-[100dvh] bg-[#0b0f14] text-slate-100" data-theme={theme}>
       <div className="bs-bg" aria-hidden />
 
       {/* Top bar */}
       <header className="sticky top-0 z-30 pt-[env(safe-area-inset-top)] bg-[#0b0f14]/70 backdrop-blur-xl border-b border-white/5">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center gap-3">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-[4.5rem] flex items-center gap-3">
           <div className="mr-auto flex items-center gap-2.5">
-            <span className="flex items-end gap-[3px] h-6" aria-hidden>
-              {["#2dd4bf", "#a78bfa", "#f472b6"].map((c, i) => (
-                <i
-                  key={c}
-                  className="bs-grow w-1.5 rounded-sm"
-                  style={{ background: c, height: 14 + i * 5, "--i": i }}
-                />
-              ))}
-            </span>
-            <span className="bs-display text-xl font-bold">Book Shelf</span>
+            <Image src="/morrow-mark.svg" alt="" width={36} height={36} className="h-9 w-9" />
+            <span className="bs-display text-xl font-bold tracking-tight">Morrow</span>
           </div>
+          <Preferences language={language} onLanguageChange={changeLanguage} theme={theme} onToggleTheme={toggleTheme} t={t} />
           <button
             onClick={() => fetchBooks(sheetId)}
             disabled={loading}
-            title="Refresh"
-            aria-label="Refresh"
+            title={t("refresh")}
+            aria-label={t("refresh")}
             className="p-2.5 rounded-lg text-slate-400 hover:bg-slate-800 transition"
           >
             <Icon name="refresh" spin={loading} />
@@ -551,13 +676,13 @@ function BookShelfContent() {
                 {session.user?.name?.[0] || "U"}
               </span>
             )}
-            <span className="hidden sm:inline">Account & sheet</span>
+            <span className="hidden sm:inline">{t("account")}</span>
           </button>
           <button
             onClick={openAddModal}
             className="bs-btn hidden sm:flex items-center gap-1.5 px-4 py-2.5 bg-gradient-to-br from-teal-500 to-teal-600 hover:from-teal-400 hover:to-teal-500 text-white text-sm font-medium rounded-xl active:scale-95"
           >
-            <Icon name="plus" /> Add book
+            <Icon name="plus" /> {t("addBook")}
           </button>
         </div>
       </header>
@@ -572,24 +697,26 @@ function BookShelfContent() {
         <Icon name="plus" className="w-6 h-6" />
       </button>
 
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 pt-6 pb-28 sm:py-8 space-y-6">
+      <main className="bs-library max-w-6xl mx-auto px-4 sm:px-6 pt-8 pb-28 sm:py-10 space-y-7">
         {/* Summary */}
         <section className="flex flex-wrap items-end justify-between gap-x-10 gap-y-4">
           <div>
-            <h1 className="bs-rise bs-display bs-gradient-text text-3xl sm:text-4xl font-semibold leading-snug">
-              Your library
+            <h1
+              className={`bs-rise bs-display ${theme === "light" ? "bs-title-light" : "bs-gradient-text"} text-3xl sm:text-4xl font-semibold leading-snug`}
+            >
+              {t("library")}
             </h1>
             <p className="text-sm text-slate-400 mt-1">
               {sheetName
                 ? `${sheetName} › Books`
-                : "Connecting to Google Sheets"}
+                : t("connecting")}
             </p>
           </div>
           <dl className="grid grid-cols-3 gap-3 w-full sm:w-auto sm:flex sm:gap-4 text-sm">
             {[
-              ["Books", countBooks, ""],
-              ["Special editions", countSpecial, ""],
-              ["Total value", countTotal.toLocaleString(), "฿"],
+              [t("books"), countBooks, ""],
+              [t("specialEditions"), countSpecial, ""],
+              [t("totalValue"), countTotal.toLocaleString(), "฿"],
             ].map(([label, val, unit], i) => (
               <div
                 key={label}
@@ -620,7 +747,7 @@ function BookShelfContent() {
             type="text"
             value={searchTerm}
             onChange={handleSearchChange}
-            placeholder="Search by title, publisher or ID"
+            placeholder={t("search")}
             className={`${field} pl-11 pr-11 py-3.5 rounded-2xl backdrop-blur`}
           />
           {searchTerm && (
@@ -629,7 +756,7 @@ function BookShelfContent() {
                 setSearchTerm("");
                 handlePageChange(1);
               }}
-              aria-label="Clear search"
+              aria-label={t("clearSearch")}
               className="absolute inset-y-0 right-3 px-1 text-slate-500 hover:text-slate-200"
             >
               <Icon name="close" />
@@ -648,14 +775,14 @@ function BookShelfContent() {
                 onClick={() => signIn("google")}
                 className="font-medium underline whitespace-nowrap"
               >
-                Sign in again
+                {t("signInAgain")}
               </button>
             ) : (
               <button
                 onClick={() => fetchBooks(sheetId)}
                 className="font-medium underline"
               >
-                Try again
+                {t("tryAgain")}
               </button>
             )}
           </div>
@@ -674,25 +801,25 @@ function BookShelfContent() {
         ) : books.length === 0 ? (
           <div className="py-20 text-center">
             <p className="bs-display text-xl font-bold">
-              No books in this sheet yet
+              {t("noBooks")}
             </p>
             <p className="text-sm text-slate-400 mt-1">
-              Add your first book to get started.
+              {t("firstBookHint")}
             </p>
             <button
               onClick={openAddModal}
               className="mt-5 px-5 py-2.5 bg-teal-600 hover:bg-teal-500 text-white text-sm font-medium rounded-lg transition"
             >
-              Add your first book
+              {t("addFirstBook")}
             </button>
           </div>
         ) : filteredBooks.length === 0 ? (
           <div className="py-20 text-center">
             <p className="bs-display text-xl font-bold">
-              No results for "{searchTerm}"
+              {t("noResults")} &quot;{searchTerm}&quot;
             </p>
             <p className="text-sm text-slate-400 mt-1">
-              Try a different word or check the spelling.
+              {t("searchHint")}
             </p>
             <button
               onClick={() => {
@@ -701,7 +828,7 @@ function BookShelfContent() {
               }}
               className="mt-4 text-sm font-medium text-teal-400 hover:underline"
             >
-              Clear search
+              {t("clear")}
             </button>
           </div>
         ) : (
@@ -745,7 +872,7 @@ function BookShelfContent() {
                       </span>
                       {special && (
                         <span className="inline-flex items-center gap-1 text-xs font-medium text-amber-300 bg-amber-500/15 rounded-full px-2 py-0.5">
-                          <Icon name="star" className="w-3 h-3" /> Special
+                          <Icon name="star" className="w-3 h-3" /> {t("special")}
                         </span>
                       )}
                     </div>
@@ -768,7 +895,7 @@ function BookShelfContent() {
                     <div className="mt-auto flex items-end justify-between gap-3 pt-1">
                       <div className="min-w-0 text-xs text-slate-400">
                         <p className="truncate" title={book.publisher}>
-                          {book.publisher || "No publisher"}
+                          {book.publisher || t("noPublisher")}
                         </p>
                         <p className="mt-0.5">
                           {formatDateDisplay(book.creation_date)}
@@ -785,14 +912,14 @@ function BookShelfContent() {
                         onClick={() => openEditModal(book)}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white active:scale-95 rounded-lg transition"
                       >
-                        <Icon name="edit" className="w-3.5 h-3.5" /> Edit
+                        <Icon name="edit" className="w-3.5 h-3.5" /> {t("edit")}
                       </button>
                       <button
                         onClick={() => openDuplicateModal(book)}
                         className="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-medium text-slate-300 bg-white/5 hover:bg-white/10 hover:text-white active:scale-95 rounded-lg transition"
-                        title="Create a new entry from this book"
+                        title={t("duplicateTitle")}
                       >
-                        <Icon name="copy" className="w-3.5 h-3.5" /> Duplicate
+                        <Icon name="copy" className="w-3.5 h-3.5" /> {t("duplicate")}
                       </button>
                     </div>
                   </div>
@@ -809,7 +936,7 @@ function BookShelfContent() {
             aria-label="Pagination"
           >
             <p>
-              Showing {paginatedBooks.length} of {filteredBooks.length} books
+              {t("showing")} {paginatedBooks.length} {t("of")} {filteredBooks.length} {t("bookCount")}
             </p>
             <div className="flex items-center gap-3">
               <button
@@ -817,7 +944,7 @@ function BookShelfContent() {
                 disabled={currentPage === 1}
                 className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-slate-200 hover:bg-white/10 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition"
               >
-                Previous
+                {t("previous")}
               </button>
               <span className="tabular-nums text-slate-300">
                 {currentPage} / {totalPages}
@@ -829,7 +956,7 @@ function BookShelfContent() {
                 disabled={currentPage === totalPages}
                 className="px-4 py-2 bg-white/5 border border-white/10 rounded-full text-slate-200 hover:bg-white/10 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed transition"
               >
-                Next
+                {t("next")}
               </button>
             </div>
           </nav>
@@ -845,17 +972,22 @@ function BookShelfContent() {
           />
           <aside className="relative w-full max-w-sm bg-[#121821] border-l border-white/5 h-full p-6 flex flex-col shadow-2xl bs-drawer">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="bs-display text-lg font-bold">Account & sheet</h2>
+              <h2 className="bs-display text-lg font-bold">{t("settings")}</h2>
               <button
                 onClick={() => setIsSettingsOpen(false)}
-                aria-label="Close"
+                aria-label={t("close")}
                 className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800"
               >
                 <Icon name="close" className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-slate-900/60 rounded-xl border border-slate-800">
+            <div className="mt-5 rounded-xl border border-white/10 p-4 space-y-3">
+              <p className="text-xs font-medium uppercase tracking-wide text-slate-400">{t("language")} · {t("theme")}</p>
+              <Preferences language={language} onLanguageChange={changeLanguage} theme={theme} onToggleTheme={toggleTheme} t={t} />
+            </div>
+
+            <div className="mt-4 flex items-center gap-3 p-3 bg-slate-900/60 rounded-xl border border-slate-800">
               {session.user?.image ? (
                 <img
                   src={session.user.image}
@@ -882,13 +1014,10 @@ function BookShelfContent() {
                 htmlFor="sheet-id"
                 className="flex items-center gap-1.5 text-sm font-medium text-slate-300"
               >
-                <Icon name="sheet" className="w-4 h-4 text-teal-400" /> Google
-                Sheet
+                <Icon name="sheet" className="w-4 h-4 text-teal-400" /> {t("googleSheet")}
               </label>
               <p className="text-xs text-slate-400">
-                We look for a file named "BookTracker_Data" (tab: Books) in your
-                Google Drive automatically. Use this field only to switch to a
-                different file.
+                {t("sheetHelp")}
               </p>
               <div className="relative">
                 <input
@@ -898,14 +1027,14 @@ function BookShelfContent() {
                   onChange={(e) =>
                     setManualId(handleSheetInput(e.target.value))
                   }
-                  placeholder="https://docs.google.com/spreadsheets/d/..."
+                  placeholder={t("sheetPlaceholder")}
                   className={`${field} pr-10`}
                 />
                 {manualId && (
                   <button
                     type="button"
                     onClick={() => setManualId("")}
-                    aria-label="Clear"
+                    aria-label={t("clear")}
                     className="absolute inset-y-0 right-2 px-1.5 text-slate-500 hover:text-slate-200"
                   >
                     <Icon name="close" />
@@ -918,14 +1047,14 @@ function BookShelfContent() {
                 disabled={!manualId || loading}
                 className="w-full flex items-center justify-center gap-2 py-2.5 bg-teal-600 hover:bg-teal-500 disabled:bg-slate-800 disabled:text-slate-600 disabled:cursor-not-allowed text-white text-sm font-medium rounded-lg transition"
               >
-                <Icon name="check" /> Use this sheet
+                <Icon name="check" /> {t("useSheet")}
               </button>
               <button
                 type="button"
                 onClick={handleUseAuto}
                 className="w-full py-2.5 text-sm text-slate-300 hover:bg-slate-800 rounded-lg transition"
               >
-                Back to automatic BookTracker_Data
+                {t("autoSheet")}
               </button>
             </div>
 
@@ -933,7 +1062,7 @@ function BookShelfContent() {
               onClick={() => signOut()}
               className="mt-auto flex items-center justify-center gap-2 py-2.5 text-sm font-medium text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 rounded-lg transition"
             >
-              <Icon name="logout" /> Sign out
+              <Icon name="logout" /> {t("signOut")}
             </button>
           </aside>
         </div>
@@ -953,11 +1082,11 @@ function BookShelfContent() {
           >
             <div className="sticky top-0 bg-[#121821] flex items-center justify-between px-6 py-4 border-b border-slate-800">
               <h2 className="bs-display text-lg font-bold">
-                {formMode === "ADD" ? "Add a book" : "Edit book"}
+                {formMode === "ADD" ? t("addTitle") : t("editTitle")}
               </h2>
               <button
                 onClick={() => setIsModalOpen(false)}
-                aria-label="Close"
+                aria-label={t("close")}
                 className="p-1.5 rounded-lg text-slate-400 hover:bg-slate-800"
               >
                 <Icon name="close" className="w-5 h-5" />
@@ -969,7 +1098,7 @@ function BookShelfContent() {
               className="p-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] space-y-4"
             >
               <div className="grid grid-cols-2 gap-4">
-                <Field label="Book ID" hint="Auto">
+                <Field label={t("bookId")} hint={t("auto")}>
                   <input
                     type="text"
                     disabled
@@ -977,7 +1106,7 @@ function BookShelfContent() {
                     className={`${field} bg-slate-800/60 font-mono text-teal-300 cursor-not-allowed`}
                   />
                 </Field>
-                <Field label="Price (THB)">
+                <Field label={t("price")}>
                   <input
                     type="number"
                     inputMode="decimal"
@@ -990,7 +1119,7 @@ function BookShelfContent() {
                 </Field>
               </div>
 
-              <Field label="Main title">
+              <Field label={t("mainTitle")}>
                 <input
                   type="text"
                   required
@@ -1003,7 +1132,7 @@ function BookShelfContent() {
               </Field>
 
               <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Thai title">
+                <Field label={t("thaiTitle")}>
                   <input
                     type="text"
                     value={formData.th_book_name}
@@ -1013,7 +1142,7 @@ function BookShelfContent() {
                     className={field}
                   />
                 </Field>
-                <Field label="English title">
+                <Field label={t("englishTitle")}>
                   <input
                     type="text"
                     value={formData.en_book_name}
@@ -1026,7 +1155,7 @@ function BookShelfContent() {
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
-                <Field label="Publisher">
+                <Field label={t("publisher")}>
                   <input
                     type="text"
                     value={formData.publisher}
@@ -1036,7 +1165,7 @@ function BookShelfContent() {
                     className={field}
                   />
                 </Field>
-                <Field label="Date added">
+                <Field label={t("dateAdded")}>
                   <input
                     type="date"
                     value={formData.creation_date}
@@ -1066,7 +1195,7 @@ function BookShelfContent() {
               >
                 <span className="flex items-center gap-2 text-sm text-slate-300">
                   <Icon name="star" className="w-4 h-4 text-amber-300" />{" "}
-                  Special edition
+                  {t("specialEdition")}
                 </span>
                 <span
                   className={`relative w-11 h-6 rounded-full transition-colors duration-300 ${formData.is_special === "TRUE" ? "bg-amber-400" : "bg-slate-700"}`}
@@ -1092,14 +1221,14 @@ function BookShelfContent() {
                   onClick={() => setIsModalOpen(false)}
                   className="flex-1 py-3 text-sm font-medium text-slate-300 bg-slate-700/60 hover:bg-slate-700 rounded-lg transition"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="flex-1 py-3 text-sm font-medium text-white bs-btn bg-gradient-to-br from-teal-500 to-teal-600 disabled:opacity-50 rounded-xl active:scale-95"
                 >
-                  {saving ? "Saving..." : "Save"}
+                  {saving ? t("saving") : t("save")}
                 </button>
               </div>
             </form>

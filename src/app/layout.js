@@ -18,8 +18,8 @@ const prompt = Prompt({
 });
 
 export const metadata = {
-  title: "My Book Tracker",
-  description: "Track books using Google Sheets",
+  title: "Morrow — Your personal library",
+  description: "A modern, thoughtful home for your personal book collection.",
 };
 
 // Mobile: draw under the notch (the page adds safe-area padding) and colour the browser bar dark.
